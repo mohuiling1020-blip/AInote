@@ -1,0 +1,7 @@
+{
+  "name": "Copy of MindSpark",
+  "description": "A lightning-fast AI note-taking app that automatically classifies and enhances your thoughts using Gemini.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
