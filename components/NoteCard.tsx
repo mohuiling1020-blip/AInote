@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Note, NoteType, NoteStatus } from '../types';
+import { Note, NoteType, NoteStatus } from '@/types';
 import { 
   CheckCircle2, 
   HelpCircle, 
@@ -80,7 +80,8 @@ export const NoteCard = React.forwardRef<HTMLDivElement, NoteCardProps>(({ note,
 
   const theme = ThemeConfig[note.type] || ThemeConfig[NoteType.UNCLASSIFIED];
   const Icon = theme.icon;
-  const isProcessing = note.status === NoteStatus.PROCESSING || note.status === NoteStatus.PENDING;
+  const isProcessing = note.status === NoteStatus.PROCESSING;
+  const isPending = note.status === NoteStatus.PENDING;
   
   const [isExpanded, setIsExpanded] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
@@ -190,8 +191,8 @@ export const NoteCard = React.forwardRef<HTMLDivElement, NoteCardProps>(({ note,
       // - Lower opacity background (white/30 to white/40)
       // - Thinner, more transparent borders
       className={`absolute w-[360px] rounded-[24px] backdrop-blur-2xl transition-all duration-300 ease-out cursor-grab active:cursor-grabbing flex flex-col overflow-hidden group 
-        bg-white/30 border border-white/40 shadow-[0_15px_40px_-10px_rgba(148,159,151,0.15)] ring-1 ring-white/30
-        hover:shadow-[0_25px_50px_-12px_rgba(148,159,151,0.25)] hover:bg-white/40 hover:scale-[1.01]
+        bg-white/40 border border-white/50 shadow-[0_15px_40px_-10px_rgba(148,159,151,0.25)] ring-1 ring-white/30
+        hover:shadow-[0_25px_50px_-12px_rgba(148,159,151,0.35)] hover:bg-white/50 hover:scale-[1.01]
         ${theme.bgTint}
         ${isExpanded ? '' : ''}
         ${className || ''}`}
@@ -263,6 +264,19 @@ export const NoteCard = React.forwardRef<HTMLDivElement, NoteCardProps>(({ note,
                  {note.errorMessage || "An unexpected error occurred."}
               </div>
            </div>
+        )}
+
+        {/* Pending State - Show original content */}
+        {note.status === NoteStatus.PENDING && !note.aiResponse && (
+          <div className="px-6 pb-6 pt-2">
+            <div className="text-[14px] text-gray-500 leading-7 font-normal font-sans tracking-normal italic">
+              {note.originalContent}
+            </div>
+            <div className="mt-4 text-xs text-gray-400 flex items-center gap-2">
+              <span className="w-2 h-2 bg-morandi-sage rounded-full animate-pulse"></span>
+              Waiting for API key...
+            </div>
+          </div>
         )}
 
         {/* Success Content */}

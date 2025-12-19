@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, Loader2, Lightbulb, CheckSquare, HelpCircle, Layers, GripHorizontal, Sparkles, Feather } from 'lucide-react';
-import { NoteType } from '../types';
+import { NoteType } from '@/types';
 
 interface DockProps {
   onSubmit: (content: string) => void;
@@ -55,7 +55,7 @@ export const InputBar = React.forwardRef<HTMLDivElement, DockProps>(({ onSubmit,
   return (
     <div ref={ref} className="z-[1000] w-[400px] animate-in slide-in-from-bottom-10 fade-in duration-500">
       {/* Main Glass Container - High Blur, White Tint */}
-      <div className="bg-white/70 backdrop-blur-2xl border border-white/60 rounded-[32px] p-1.5 shadow-[0_30px_60px_-15px_rgba(148,159,151,0.25)] ring-1 ring-white/80 relative">
+      <div className="bg-white/50 backdrop-blur-2xl border border-white/50 rounded-[32px] p-1.5 shadow-[0_30px_60px_-15px_rgba(148,159,151,0.3)] ring-1 ring-white/40 relative">
         
         {/* Inner Content Padding */}
         <div className="px-5 pt-4 pb-3">

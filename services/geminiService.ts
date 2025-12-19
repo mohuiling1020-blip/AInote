@@ -9,7 +9,7 @@ const responseSchema: Schema = {
   properties: {
     intent: {
       type: Type.STRING,
-      enum: ["Action", "Query", "Idea", "Resource"],
+      enum: ["Action", "Query", "Idea"],
       description: "Classify the user input into one of these categories.",
     },
     title: {
@@ -87,14 +87,8 @@ export const processNoteWithGemini = async (
 - **处理逻辑**：
     - 利用 SCAMPER (替代/合并/改造/修改/用途/消除/重组) 模型对灵感进行发散。
     - 列出该想法潜在的 Pros (优点) 和 Cons (挑战)。
-- **输出风格**：启发性，鼓励思考。
+- **输出风格**：启发性，鼓励思考，Markdown 格式。
 
-## 4. Resource (资源/链接)
-- **触发条件**：URL 链接、书籍名称、论文标题。
-- **处理逻辑**：
-    - 生成一段 50 字以内的一句话摘要（TL;DR）。
-    - 提取 3 个核心 Key Takeaways (关键收获)。
-- **输出风格**：摘要性，提取精华。
 
 # Constraints
 1. **只输出 JSON**，严禁输出任何寒暄语或解释性文字。

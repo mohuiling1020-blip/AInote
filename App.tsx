@@ -1,12 +1,14 @@
+'use client';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import Draggable from 'react-draggable';
 import { Settings, Key, X } from 'lucide-react';
 
-import { Note, NoteStatus, NoteType, UserSettings } from './types';
-import { processNoteWithGemini } from './services/geminiService';
-import { InputBar } from './components/InputBar';
-import { NoteCard } from './components/NoteCard';
+import { Note, NoteStatus, NoteType, UserSettings, ModelType } from '@/types';
+import { processNote } from '@/services/apiService';
+import { InputBar } from '@/components/InputBar';
+import { NoteCard } from '@/components/NoteCard';
 
 const STORAGE_KEY_NOTES = 'mindspark_notes_v2';
 const STORAGE_KEY_SETTINGS = 'mindspark_settings_v1';
@@ -18,9 +20,11 @@ const App: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filter, setFilter] = useState<NoteType | 'ALL'>('ALL');
   const [settings, setSettings] = useState<UserSettings>({
-    apiKey: process.env.API_KEY || '',
+    apiKey: '',
     autoProcess: true,
+    model: 'gemini-flash',
   });
+  const [windowSize, setWindowSize] = useState({ width: 1920, height: 1080 });
 
   // Manage refs for draggable items
   const notesRefs = useRef<Map<string, React.RefObject<HTMLDivElement | null>>>(new Map());
@@ -34,8 +38,22 @@ const App: React.FC = () => {
     return notesRefs.current.get(id)!;
   };
 
+  // Set window size on client side
+  useEffect(() => {
+    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    
+    const handleResize = () => {
+      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Load from local storage
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
     if (savedNotes) {
       try {
@@ -49,13 +67,12 @@ const App: React.FC = () => {
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
-        if (process.env.API_KEY) parsed.apiKey = process.env.API_KEY;
+        // Ensure model is set, default to gemini-flash
+        if (!parsed.model) parsed.model = 'gemini-flash';
         setSettings(parsed);
       } catch (e) {
         console.error("Failed to load settings", e);
       }
-    } else if (process.env.API_KEY) {
-       setSettings(prev => ({...prev, apiKey: process.env.API_KEY || ''}));
     }
   }, []);
 
@@ -76,8 +93,11 @@ const App: React.FC = () => {
   };
 
   const handleCreateNote = async (content: string) => {
-    const x = (window.innerWidth / 2) - 170;
-    const y = (window.innerHeight / 2) - 100;
+    // Ensure card is visible in viewport
+    const cardWidth = 360;
+    const cardHeight = 200;
+    const x = Math.max(20, Math.min(windowSize.width / 2 - cardWidth / 2, windowSize.width - cardWidth - 20));
+    const y = Math.max(20, Math.min(windowSize.height / 2 - cardHeight / 2, windowSize.height - cardHeight - 20));
 
     const newNote: Note = {
       id: uuidv4(),
@@ -91,19 +111,16 @@ const App: React.FC = () => {
 
     setNotes(prev => [...prev, newNote]);
 
-    if (settings.apiKey) {
-      processNote(newNote.id, content);
-    } else {
-       setSettingsOpen(true);
-    }
+    // Always process note (API key is stored on backend)
+    processNoteHandler(newNote.id, content);
   };
 
-  const processNote = useCallback(async (noteId: string, content: string) => {
+  const processNoteHandler = useCallback(async (noteId: string, content: string) => {
     setIsProcessing(true);
     setNotes(prev => prev.map(n => n.id === noteId ? { ...n, status: NoteStatus.PROCESSING } : n));
 
     try {
-      const aiResponse = await processNoteWithGemini(content, settings.apiKey);
+      const aiResponse = await processNote(content, settings.model);
       
       setNotes(prev => prev.map(n => {
         if (n.id === noteId) {
@@ -130,7 +147,7 @@ const App: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [settings.apiKey]);
+  }, [settings.model]);
 
   const handleUpdateNote = (id: string, updates: Partial<Note>) => {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
@@ -161,48 +178,36 @@ const App: React.FC = () => {
   const filteredNotes = filter === 'ALL' ? notes : notes.filter(n => n.type === filter);
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-[#F2F0E6] selection:bg-morandi-cream/50">
+    <div className="relative w-screen h-screen overflow-hidden selection:bg-morandi-cream/50" style={{ minHeight: '100vh' }}>
       
       {/* 
-        BACKGROUND: Light & Airy Morandi Diffuse
-        Key adjustments from user feedback:
-        1. Base color is lighter (#F2F0E6).
-        2. Removed 'mix-blend-multiply' to avoid heavy/dark colors.
-        3. Increased White and Cream presence significantly.
-        4. Added distinct Gaussian blur circles (Shapes) that float.
+        BACKGROUND: 4 Specific Gaussian Blur Circles on Transparent Base
+        Colors: 
+        1. Sage: #949F97
+        2. Cream: #EBE2AA
+        3. Mint: #C8D5C5
+        4. Beige: #EEE9D0
       */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-transparent">
           
-          {/* Base Gradient - Very Subtle Warmth */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#F2F0E6] via-[#EEE9D0] to-[#E6E1C5] opacity-40"></div>
+          {/* 0. Small Cream (#EBE2AA) - Top Left accent */}
+          <div className="absolute top-[-10%] left-[-2%] w-[200px] h-[200px] rounded-full bg-[#EBE2AA] blur-[50px] opacity-60"></div>
 
-          {/* --- The Gaussian Blur Shapes --- */}
+          {/* 1. Sage (#949F97浅绿) - Deepest tone, Bottom Left anchor */}
+          <div className="absolute bottom-[5%] left-[0%] w-[800px] h-[600px] rounded-full bg-[#C8D5C5] blur-[200px] opacity-60 animate-float-slow"></div>
 
-          {/* Shape 1: Large Cream Light (Top Right) - The main light source, dominating the feel */}
-          <div className="absolute -top-[20%] -right-[20%] w-[90vw] h-[90vw] rounded-full bg-[#EBE2AA] blur-[160px] opacity-50 animate-float-slow"></div>
+          {/* 2. Cream (#EBE2AA深黄) - Warm light, Top Right */}
+          <div className="absolute top-[8%] right-[10%] w-[380px] h-[380px] rounded-full bg-[#EBE2AA] blur-[150px] opacity-85 animate-float-medium"></div>
 
-          {/* Shape 2: Mint Freshness (Top Left) - Airy and light */}
-          <div className="absolute -top-[10%] -left-[10%] w-[60vw] h-[60vw] rounded-full bg-[#C8D5C5] blur-[130px] opacity-60 animate-float-medium"></div>
+          {/* 3. Mint (#C8D5C5深绿) - Fresh tone, Top Left */}
+          <div className="absolute top-[5%] left-[1%] w-[800px] h-[800px] rounded-full bg-[#949F97] blur-[200px] opacity-80 animate-float-fast"></div>
 
-          {/* Shape 3: Pure White Highlight (Center/Top) - Brightens the middle canvas */}
-          <div className="absolute top-[5%] left-[25%] w-[50vw] h-[50vw] rounded-full bg-white blur-[120px] opacity-80 animate-pulse-slow"></div>
+          {/* 4. Beige (#EEE9D0奶黄) - Subtle base, Bottom Right */}
+          <div className="absolute bottom-[1%] right-[1%] w-[1000px] h-[700px] rounded-full bg-[#EEE9D0] blur-[130px] opacity-60 animate-float-slow"></div>
 
-          {/* Shape 4: Sage Grounding (Bottom Left) - Kept subtle and transparent to avoid heaviness */}
-          <div className="absolute -bottom-[20%] -left-[20%] w-[80vw] h-[80vw] rounded-full bg-[#949F97] blur-[180px] opacity-25 animate-float-fast"></div>
-
-          {/* Shape 5: Distinct Mint Accent (Mid Left) - Floating distinct shape */}
-          <div className="absolute top-[35%] left-[5%] w-[25vw] h-[25vw] rounded-full bg-[#C8D5C5] blur-[80px] opacity-50 animate-float-slow" style={{animationDelay: '1s'}}></div>
-
-          {/* Shape 6: Cream/Beige Accent (Bottom Right) - Balancing the sage */}
-          <div className="absolute bottom-[5%] right-[5%] w-[40vw] h-[40vw] rounded-full bg-[#EBE2AA] blur-[120px] opacity-40 animate-float-medium" style={{animationDelay: '3s'}}></div>
-          
-          {/* Shape 7: Small Sage Accent (Top Right floating) - A touch of contrast */}
-          <div className="absolute top-[20%] right-[15%] w-[20vw] h-[20vw] rounded-full bg-[#949F97] blur-[100px] opacity-20 animate-float-fast" style={{animationDelay: '2s'}}></div>
-
-
-          {/* Texture & Overlay */}
+          {/* Texture Overlay - Subtle Grain */}
           <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-overlay"></div>
-          <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px]"></div>
+          
       </div>
 
       {/* Settings Button */}
@@ -227,17 +232,39 @@ const App: React.FC = () => {
             </div>
             
             <p className="text-sm text-gray-600 mb-6 font-sans leading-relaxed">
-              To activate the neural engine, please provide your API Key. It remains stored strictly on your device.
+              Select the AI model to use for processing your notes. API keys are securely stored on the server.
             </p>
 
-            <div className="relative">
-              <input 
-                type="password" 
-                value={settings.apiKey}
-                onChange={(e) => updateSettings({ apiKey: e.target.value })}
-                placeholder="sk-..."
-                className="w-full bg-white/50 rounded-xl border border-gray-200/50 shadow-inner focus:border-morandi-sage focus:ring-1 focus:ring-morandi-sage/50 py-3.5 px-4 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400 font-mono"
-              />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  AI Model
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => updateSettings({ model: 'gemini-flash' })}
+                    className={`flex-1 px-4 py-3 rounded-xl border transition-all ${
+                      settings.model === 'gemini-flash'
+                        ? 'bg-morandi-sage text-white border-transparent shadow-md'
+                        : 'bg-white/50 border-gray-200/50 text-gray-700 hover:bg-white/70'
+                    }`}
+                  >
+                    <div className="font-medium">Gemini Flash</div>
+                    <div className="text-xs opacity-80 mt-1">Fast & efficient</div>
+                  </button>
+                  <button
+                    onClick={() => updateSettings({ model: 'qwen3-max' })}
+                    className={`flex-1 px-4 py-3 rounded-xl border transition-all ${
+                      settings.model === 'qwen3-max'
+                        ? 'bg-morandi-sage text-white border-transparent shadow-md'
+                        : 'bg-white/50 border-gray-200/50 text-gray-700 hover:bg-white/70'
+                    }`}
+                  >
+                    <div className="font-medium">Qwen3 Max</div>
+                    <div className="text-xs opacity-80 mt-1">Advanced reasoning</div>
+                  </button>
+                </div>
+              </div>
             </div>
             
             <div className="flex justify-end mt-8">
@@ -268,7 +295,7 @@ const App: React.FC = () => {
                   ref={nodeRef}
                   note={note} 
                   style={{ zIndex: note.zIndex }}
-                  onRetry={processNote}
+                  onRetry={processNoteHandler}
                   onUpdate={handleUpdateNote}
                   onClose={handleDeleteNote}
                 />
@@ -281,7 +308,7 @@ const App: React.FC = () => {
       <Draggable 
         nodeRef={inputBarRef}
         handle=".input-drag-handle"
-        defaultPosition={{x: 40, y: window.innerHeight - 300}}
+        defaultPosition={{x: 40, y: windowSize.height - 800}}
       >
          <div ref={inputBarRef} className="absolute z-[1500]">
             <InputBar 

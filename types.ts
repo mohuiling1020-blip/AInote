@@ -42,7 +42,10 @@ export interface Note {
   checkedIndices?: number[]; // Track checked todo items
 }
 
+export type ModelType = 'gemini-flash' | 'qwen3-max';
+
 export interface UserSettings {
   apiKey: string;
   autoProcess: boolean;
+  model: ModelType;
 }

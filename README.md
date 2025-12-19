@@ -1,20 +1,70 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# MindSpark - Next.js Version
 
-# Run and deploy your AI Studio app
+A Next.js application that transforms fragmented thoughts into structured knowledge using AI.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/11yt520dRDekLk10Hn7ipIq9i6o0Q8tyA
+- 🎨 Beautiful Morandi color palette with diffuse gradient background
+- 🔒 Secure API key storage on the backend
+- 🤖 Support for multiple AI models:
+  - **Gemini Flash**: Fast and efficient
+  - **Qwen3 Max**: Advanced reasoning
+- 📝 Drag-and-drop note cards with glassmorphism design
+- 🎯 Intelligent note classification (Action, Query, Idea, Resource)
 
-## Run Locally
+## Setup
 
-**Prerequisites:**  Node.js
+### 1. Install Dependencies
 
+```bash
+npm install
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 2. Configure Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+# Gemini API Key (for gemini-flash model)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Qwen API Key (for qwen3-max model)
+QWEN_API_KEY=sk-a2aaa4f67c21429a96a215316f54209c
+```
+
+### 3. Run Development Server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Project Structure
+
+```
+├── app/
+│   ├── api/
+│   │   └── process-note/    # Backend API route for AI processing
+│   ├── layout.tsx            # Root layout
+│   ├── page.tsx              # Main page
+│   └── globals.css           # Global styles
+├── components/
+│   ├── InputBar.tsx          # Input component
+│   └── NoteCard.tsx          # Note card component
+├── services/
+│   └── apiService.ts         # Frontend API service
+└── types.ts                  # TypeScript types
+```
+
+## Security
+
+- API keys are stored securely on the backend in environment variables
+- Frontend never exposes API keys to the client
+- All AI processing happens server-side
+
+## Model Selection
+
+Users can switch between models in the settings panel:
+- **Gemini Flash**: Uses Google's Gemini API
+- **Qwen3 Max**: Uses Alibaba Cloud's Qwen API (OpenAI-compatible)
