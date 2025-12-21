@@ -30,7 +30,16 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 # Qwen API Key (for qwen3-max model)
 QWEN_API_KEY=sk-a2aaa4f67c21429a96a215316f54209c
+
+# Optional: Proxy configuration (if needed for network access)
+# HTTP_PROXY=http://proxy-server:port
+# HTTPS_PROXY=http://proxy-server:port
+# Or use lowercase versions:
+# http_proxy=http://proxy-server:port
+# https_proxy=http://proxy-server:port
 ```
+
+**Note:** If you're experiencing network connection issues (especially in regions where Google services are restricted), you may need to configure a proxy. Set `HTTP_PROXY` and `HTTPS_PROXY` environment variables in your `.env.local` file or system environment.
 
 ### 3. Run Development Server
 

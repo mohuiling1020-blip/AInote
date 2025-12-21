@@ -101,24 +101,68 @@ async function processWithGemini(content: string): Promise<AIResponse> {
     throw new Error('GEMINI_API_KEY is not configured');
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  console.log('Gemini API Key loaded:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+  
+  // Check proxy configuration
+  const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
+  const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
+  if (httpProxy || httpsProxy) {
+    console.log('Proxy detected:', { httpProxy, httpsProxy });
+  }
 
-  const response = await ai.models.generateContent({
-    model: GEMINI_MODEL_NAME,
-    contents: content,
-    config: {
-      systemInstruction: systemInstruction,
-      responseMimeType: 'application/json',
-      responseSchema: responseSchema,
-      temperature: 0.3,
-    },
+  // Configure httpOptions if needed (e.g., for proxy or custom base URL)
+  const httpOptions: any = {};
+  
+  // Check if custom base URL is configured via environment variable
+  if (process.env.GEMINI_PROXY_URL) {
+    httpOptions.baseUrl = process.env.GEMINI_PROXY_URL;
+    console.log('Using custom base URL:', process.env.GEMINI_PROXY_URL);
+  }
+  
+  // Increase timeout for network issues
+  httpOptions.timeout = 60000; // 60 seconds
+
+  const ai = new GoogleGenAI({ 
+    apiKey,
+    httpOptions: Object.keys(httpOptions).length > 0 ? httpOptions : undefined
   });
 
-  const text = response.text;
-  if (!text) throw new Error('Empty response from AI');
+  try {
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL_NAME,
+      contents: content,
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: 'application/json',
+        responseSchema: responseSchema,
+        temperature: 0.3,
+      },
+    });
 
-  const parsed = JSON.parse(text) as AIResponse;
-  return parsed;
+    const text = response.text;
+    if (!text) throw new Error('Empty response from AI');
+
+    const parsed = JSON.parse(text) as AIResponse;
+    return parsed;
+  } catch (error: any) {
+    console.error('Gemini API error details:', {
+      message: error.message,
+      name: error.name,
+      cause: error.cause,
+      stack: error.stack,
+    });
+    
+    // Provide more helpful error messages
+    if (error.message?.includes('fetch failed') || error.cause?.code === 'ENOTFOUND' || error.cause?.code === 'ECONNREFUSED') {
+      throw new Error('Network connection failed. Please check your internet connection or configure a proxy if needed.');
+    }
+    
+    if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+      throw new Error('Invalid API key. Please check your GEMINI_API_KEY.');
+    }
+    
+    throw error;
+  }
 }
 
 async function processWithQwen(content: string): Promise<AIResponse> {
