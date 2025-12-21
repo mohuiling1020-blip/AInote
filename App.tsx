@@ -249,7 +249,7 @@ const App: React.FC = () => {
                         : 'bg-white/50 border-gray-200/50 text-gray-700 hover:bg-white/70'
                     }`}
                   >
-                    <div className="font-medium">Gemini Flash</div>
+                    <div className="font-medium">Gemini3 Flash</div>
                     <div className="text-xs opacity-80 mt-1">Fast & efficient</div>
                   </button>
                   <button
