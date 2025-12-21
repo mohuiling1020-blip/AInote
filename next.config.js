@@ -3,8 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   // Disable development overlay to reduce UI clutter
   devIndicators: {
-    buildActivity: false,
-    buildActivityPosition: 'bottom-right',
+    position: 'bottom-right',
   },
   // Reduce development tool visibility
   onDemandEntries: {
