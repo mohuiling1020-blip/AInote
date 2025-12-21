@@ -94,8 +94,8 @@ const App: React.FC = () => {
 
   const handleCreateNote = async (content: string) => {
     // Ensure card is visible in viewport
-    const cardWidth = 360;
-    const cardHeight = 200;
+    const cardWidth = 280;
+    const cardHeight = 180;
     const x = Math.max(20, Math.min(windowSize.width / 2 - cardWidth / 2, windowSize.width - cardWidth - 20));
     const y = Math.max(20, Math.min(windowSize.height / 2 - cardHeight / 2, windowSize.height - cardHeight - 20));
 
