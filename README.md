@@ -2,7 +2,8 @@
 
 A Next.js application that transforms fragmented thoughts into structured knowledge using AI.
 
-AI便签：https://ainote-eight.vercel.app/ （MVP因为暂时部署在一个国外云服务器上所以需要翻墙）
+AI便签：https://ainote-eight.vercel.app/
+（MVP因为暂时部署在一个国外云服务器上所以需要翻墙）
 1. 场景与故事 
 作为一个ADHD，我经常有很多碎片化的想法（灵感/待办），通常是先发给微信文件传输助手。但当我空下来想处理时，链路太长了：复制 -> 翻墙 -> 打开LLM -> 粘贴 -> 交互。这就导致很多灵感‘记了白记’，变成了死数据。我认为记录不应该只是存储，而应该触发思考。
 一个讲好故事的场景：
