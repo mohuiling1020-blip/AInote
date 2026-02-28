@@ -3,8 +3,14 @@ import { ClerkProvider } from '@clerk/nextjs';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'MindSpark - Morandi Diffuse',
-  description: 'Transform fragmented thoughts into structured knowledge',
+  title: 'MindSpark — AI-Powered Thinking Notes',
+  description: 'Transform fragmented thoughts into structured knowledge. Just note it — AI connects the dots. 记录即思考，AI 帮你连点成线。',
+  keywords: ['AI notes', 'thinking tool', 'knowledge management', 'daily review', 'MindSpark', 'AI笔记', '灵感记录'],
+  openGraph: {
+    title: 'MindSpark — AI-Powered Thinking Notes',
+    description: 'Just note it. AI connects the dots.',
+    type: 'website',
+  },
 };
 
 const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
