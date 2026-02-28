@@ -29,13 +29,23 @@ module.exports = {
         'float-medium': 'float 15s ease-in-out infinite reverse',
         'float-fast': 'float 10s ease-in-out infinite',
         'pulse-slow': 'pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
+        'confetti-fall': 'confettiFall 3s ease-in forwards',
       },
       keyframes: {
         float: {
           '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
           '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
           '66%': { transform: 'translate(-20px, 20px) scale(0.95)' },
-        }
+        },
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        confettiFall: {
+          '0%': { opacity: '1', transform: 'translateY(0) rotate(0deg)' },
+          '100%': { opacity: '0', transform: 'translateY(100vh) rotate(720deg)' },
+        },
       }
     },
   },

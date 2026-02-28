@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { UserButton } from '@clerk/nextjs';
 import Draggable from 'react-draggable';
-import { Settings, X, Loader2 } from 'lucide-react';
+import { Settings, X, Loader2, Clock } from 'lucide-react';
 
 import { Note, NoteStatus, NoteType, UserSettings, ModelType, DbNote, dbNoteToNote, noteToDbFields } from '@/types';
 import { processNote, fetchNotes, createNote, updateNote as apiUpdateNote, deleteNote as apiDeleteNote, batchCreateNotes } from '@/services/apiService';
@@ -267,7 +267,7 @@ const App: React.FC = () => {
 
       </div>
 
-      {/* Top Right: User Button + Settings */}
+      {/* Top Right: User Button + Daily Review + Settings */}
       <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
         <UserButton
           appearance={{
@@ -276,6 +276,13 @@ const App: React.FC = () => {
             },
           }}
         />
+        <button
+          onClick={() => { window.location.href = '/daily-review'; }}
+          className="p-3 bg-white/30 backdrop-blur-md hover:bg-white/60 rounded-full text-gray-600 hover:text-gray-900 transition-all shadow-sm border border-white/40 active:scale-95 group ring-1 ring-white/40"
+          title="每日复盘"
+        >
+          <Clock className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+        </button>
         <button
           onClick={() => setSettingsOpen(true)}
           className="p-3 bg-white/30 backdrop-blur-md hover:bg-white/60 rounded-full text-gray-600 hover:text-gray-900 transition-all shadow-sm border border-white/40 active:scale-95 group ring-1 ring-white/40"
