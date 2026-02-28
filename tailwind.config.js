@@ -31,6 +31,9 @@ module.exports = {
         'pulse-slow': 'pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
         'confetti-fall': 'confettiFall 3s ease-in forwards',
+        'fly-up': 'flyUp 0.5s ease-in forwards',
+        'flip-out': 'flipOut 0.4s ease-in forwards',
+        'spark-glow': 'sparkGlow 1s ease-in-out',
       },
       keyframes: {
         float: {
@@ -45,6 +48,19 @@ module.exports = {
         confettiFall: {
           '0%': { opacity: '1', transform: 'translateY(0) rotate(0deg)' },
           '100%': { opacity: '0', transform: 'translateY(100vh) rotate(720deg)' },
+        },
+        flyUp: {
+          '0%': { transform: 'scale(1) translateY(0)', opacity: '1' },
+          '100%': { transform: 'scale(0.3) translateY(-200px)', opacity: '0' },
+        },
+        flipOut: {
+          '0%': { transform: 'perspective(600px) rotateY(0) translateX(0)', opacity: '1' },
+          '100%': { transform: 'perspective(600px) rotateY(90deg) translateX(-80px)', opacity: '0' },
+        },
+        sparkGlow: {
+          '0%': { boxShadow: '0 0 0 0 rgba(235, 226, 170, 0)' },
+          '50%': { boxShadow: '0 0 20px 5px rgba(235, 226, 170, 0.4)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(235, 226, 170, 0)' },
         },
       }
     },

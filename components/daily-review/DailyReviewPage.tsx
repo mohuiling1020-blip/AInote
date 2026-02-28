@@ -40,6 +40,7 @@ export function DailyReviewPage() {
   const [showCompletion, setShowCompletion] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [insightCardVisible, setInsightCardVisible] = useState(true);
   const [showShareModal, setShowShareModal] = useState(false);
   const [date, setDate] = useState(getTodayDateString());
   const [regenerating, setRegenerating] = useState(false);
@@ -127,38 +128,41 @@ export function DailyReviewPage() {
     }
   };
 
-  // Handle insight actions
-  const handleSpark = async (content: string) => {
-    if (!review || actionLoading) return;
+  // Handle insight actions — return Promises so HistoricalInsightCard can await them
+  const handleSpark = async (content: string): Promise<void> => {
+    if (!review) return;
     setActionLoading(true);
     try {
       await submitInsightAction(review.id, review.historicalNoteId!, 'spark', content);
     } catch (err: any) {
       console.error('Spark action failed:', err);
+      throw err;
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleMerge = async () => {
-    if (!review || actionLoading) return;
+  const handleMerge = async (): Promise<void> => {
+    if (!review) return;
     setActionLoading(true);
     try {
       await submitInsightAction(review.id, review.historicalNoteId!, 'merge');
     } catch (err: any) {
       console.error('Merge action failed:', err);
+      throw err;
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleDismiss = async () => {
-    if (!review || actionLoading) return;
+  const handleDismiss = async (): Promise<void> => {
+    if (!review) return;
     setActionLoading(true);
     try {
       await submitInsightAction(review.id, review.historicalNoteId!, 'dismiss');
     } catch (err: any) {
       console.error('Dismiss action failed:', err);
+      throw err;
     } finally {
       setActionLoading(false);
     }
@@ -264,7 +268,7 @@ export function DailyReviewPage() {
             )}
 
             {/* Historical Insight */}
-            {historicalNote && review.historicalHook ? (
+            {historicalNote && review.historicalHook && insightCardVisible ? (
               <HistoricalInsightCard
                 noteTitle={historicalNote.title}
                 noteContent={historicalNote.processed_content || historicalNote.content}
@@ -272,6 +276,7 @@ export function DailyReviewPage() {
                 onSpark={handleSpark}
                 onMerge={handleMerge}
                 onDismiss={handleDismiss}
+                onComplete={() => setInsightCardVisible(false)}
                 disabled={actionLoading}
               />
             ) : (
@@ -304,7 +309,7 @@ export function DailyReviewPage() {
               <div className="text-center py-4">
                 <span className="text-sm text-morandi-sage font-sans">
                   复盘已完成
-                  {review.streakCount > 1 && ` · 连续 ${review.streakCount} 天`}
+                  {review.streakCount >= 1 && ` · 连续 ${review.streakCount} 天`}
                 </span>
               </div>
             )}

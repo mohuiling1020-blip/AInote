@@ -3,30 +3,58 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle, Flame } from 'lucide-react';
 
+type ParticleShape = 'circle' | 'bar' | 'square';
+
+interface Particle {
+  id: number;
+  left: number;
+  delay: number;
+  color: string;
+  shape: ParticleShape;
+  rotate: number;
+}
+
 interface CompletionOverlayProps {
   streakCount: number;
   onClose: () => void;
 }
 
+function getStreakMessage(count: number): string {
+  if (count <= 1) return '坚持第 1 天，好的开始 🌱';
+  if (count <= 6) return `连续 ${count} 天 🔥`;
+  return `连续 ${count} 天，太厉害了 ✨`;
+}
+
+function getParticleClass(shape: ParticleShape): string {
+  switch (shape) {
+    case 'circle':
+      return 'w-2 h-2 rounded-full';
+    case 'bar':
+      return 'w-3 h-1 rounded-sm';
+    case 'square':
+      return 'w-2.5 h-2.5 rounded-sm';
+  }
+}
+
 export function CompletionOverlay({ streakCount, onClose }: CompletionOverlayProps) {
   const [visible, setVisible] = useState(false);
-  const [confetti, setConfetti] = useState<Array<{ id: number; left: number; delay: number; color: string }>>([]);
+  const [confetti, setConfetti] = useState<Particle[]>([]);
 
   useEffect(() => {
-    // Trigger entrance animation
     requestAnimationFrame(() => setVisible(true));
 
-    // Generate confetti particles
     const colors = ['#949F97', '#EBE2AA', '#C8D5C5', '#EEE9D0', '#D3C4BE'];
-    const particles = Array.from({ length: 20 }, (_, i) => ({
+    const shapes: ParticleShape[] = ['circle', 'bar', 'square'];
+    const particles: Particle[] = Array.from({ length: 30 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
       delay: Math.random() * 2,
       color: colors[i % colors.length],
+      shape: shapes[i % shapes.length],
+      rotate: Math.random() * 360,
     }));
     setConfetti(particles);
 
-    // Auto-close after 3 seconds
     const timer = setTimeout(() => {
       setVisible(false);
       setTimeout(onClose, 300);
@@ -49,12 +77,13 @@ export function CompletionOverlay({ streakCount, onClose }: CompletionOverlayPro
       {confetti.map(p => (
         <div
           key={p.id}
-          className="absolute w-2 h-2 rounded-full animate-confetti-fall"
+          className={`absolute ${getParticleClass(p.shape)} animate-confetti-fall`}
           style={{
             left: `${p.left}%`,
             top: '-10px',
             backgroundColor: p.color,
             animationDelay: `${p.delay}s`,
+            transform: `rotate(${p.rotate}deg)`,
           }}
         />
       ))}
@@ -69,11 +98,11 @@ export function CompletionOverlay({ streakCount, onClose }: CompletionOverlayPro
 
         <h2 className="text-2xl font-serif text-gray-800">复盘完成</h2>
 
-        {streakCount > 1 && (
+        {streakCount >= 1 && (
           <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/60 backdrop-blur-md border border-white/50 shadow-lg">
             <Flame className="w-5 h-5 text-orange-400" />
             <span className="text-sm font-medium text-gray-700">
-              连续 {streakCount} 天
+              {getStreakMessage(streakCount)}
             </span>
           </div>
         )}

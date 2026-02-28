@@ -59,7 +59,7 @@ export async function submitInsightAction(
   noteId: string,
   action: InsightAction,
   sparkContent?: string,
-): Promise<{ interaction: unknown; sparkNote?: unknown }> {
+): Promise<{ interaction: unknown; sparkNoteId?: string }> {
   const response = await fetch(`/api/daily-review/${reviewId}/insight-action`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

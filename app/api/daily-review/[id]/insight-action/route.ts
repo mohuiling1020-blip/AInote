@@ -49,11 +49,21 @@ export async function POST(
 
   // If spark action, create a new note from the spark content
   if (action === 'spark' && sparkContent) {
+    // Fetch original note title for the inspiration prefix
+    const { data: sourceNote } = await supabase
+      .from('notes')
+      .select('title')
+      .eq('id', noteId)
+      .single();
+
+    const sourceTitle = sourceNote?.title || '未命名笔记';
+    const prefixedContent = `💡 灵感来源：${sourceTitle}\n\n${sparkContent}`;
+
     const { data: sparkNote, error: noteError } = await supabase
       .from('notes')
       .insert({
         user_id: userId,
-        content: sparkContent,
+        content: prefixedContent,
         type: 'Idea',
         status: 'pending',
         position_x: Math.random() * 600 + 100,
@@ -69,6 +79,14 @@ export async function POST(
     }
 
     sparkNoteId = sparkNote.id;
+
+    // Record bidirectional link in note_links table
+    await supabase.from('note_links').insert({
+      user_id: userId,
+      source_note_id: noteId,
+      target_note_id: sparkNoteId,
+      link_type: 'spark',
+    });
   }
 
   // Record the interaction
