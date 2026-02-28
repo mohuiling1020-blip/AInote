@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { ArrowLeft, Calendar, ChevronDown } from 'lucide-react';
+import React from 'react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DailyReviewHeaderProps {
   date: string; // YYYY-MM-DD
@@ -27,17 +27,35 @@ function getTodayDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
-export function DailyReviewHeader({ date, onBack, onDateChange, children }: DailyReviewHeaderProps) {
-  const dateInputRef = useRef<HTMLInputElement>(null);
+function getPrevDay(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
-  const handleDateClick = () => {
-    dateInputRef.current?.showPicker();
+function getNextDay(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function DailyReviewHeader({ date, onBack, onDateChange, children }: DailyReviewHeaderProps) {
+  const today = getTodayDateString();
+  const isToday = date === today;
+
+  const handlePrev = () => {
+    onDateChange?.(getPrevDay(date));
   };
 
-  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
-    if (newDate && onDateChange) {
-      onDateChange(newDate);
+  const handleNext = () => {
+    if (!isToday) {
+      onDateChange?.(getNextDay(date));
     }
   };
 
@@ -52,25 +70,28 @@ export function DailyReviewHeader({ date, onBack, onDateChange, children }: Dail
       </button>
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleDateClick}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors cursor-pointer"
-        >
-          <Calendar className="w-4 h-4 text-morandi-sage" />
-          <span className="text-sm font-sans">{formatDisplayDate(date)}</span>
-          <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={date}
-            max={getTodayDateString()}
-            onChange={handleDateInputChange}
-            className="sr-only"
-            tabIndex={-1}
-            aria-label="选择日期"
-          />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handlePrev}
+            className="p-1.5 rounded-full text-gray-500 hover:text-gray-800 hover:bg-white/50 transition-all active:scale-95"
+            aria-label="前一天"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-sm font-sans text-gray-600 min-w-[5.5rem] text-center">
+            {formatDisplayDate(date)}
+          </span>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={isToday}
+            className="p-1.5 rounded-full text-gray-500 hover:text-gray-800 hover:bg-white/50 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500"
+            aria-label="后一天"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
         {children}
       </div>
     </div>

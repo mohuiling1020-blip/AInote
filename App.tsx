@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { UserButton } from '@clerk/nextjs';
 import Draggable from 'react-draggable';
-import { Settings, X, Loader2, Clock } from 'lucide-react';
+import { Settings, X, Loader2, Telescope } from 'lucide-react';
 
 import { Note, NoteStatus, NoteType, UserSettings, ModelType, DbNote, dbNoteToNote, noteToDbFields } from '@/types';
 import { processNote, fetchNotes, createNote, updateNote as apiUpdateNote, deleteNote as apiDeleteNote, batchCreateNotes } from '@/services/apiService';
@@ -242,10 +242,10 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden selection:bg-morandi-cream/50" style={{ minHeight: '100vh' }}>
+    <div className="relative w-screen min-h-screen overflow-x-hidden overflow-y-auto selection:bg-morandi-cream/50">
 
       {/* Background */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-transparent">
+      <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-transparent">
 
           {/* 0. Small Cream (#EBE2AA) - Top Left accent */}
           <div className="absolute top-[-10%] left-[-2%] w-[200px] h-[200px] rounded-full bg-[#EBE2AA] blur-[50px] opacity-60"></div>
@@ -267,21 +267,14 @@ const App: React.FC = () => {
 
       </div>
 
-      {/* Top Right: User Button + Daily Review + Settings */}
+      {/* Top Right: Daily Review + Settings */}
       <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
-        <UserButton
-          appearance={{
-            elements: {
-              avatarBox: 'w-9 h-9 ring-2 ring-white/40 shadow-sm',
-            },
-          }}
-        />
         <button
           onClick={() => { window.location.href = '/daily-review'; }}
           className="p-3 bg-white/30 backdrop-blur-md hover:bg-white/60 rounded-full text-gray-600 hover:text-gray-900 transition-all shadow-sm border border-white/40 active:scale-95 group ring-1 ring-white/40"
           title="每日复盘"
         >
-          <Clock className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          <Telescope className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
         </button>
         <button
           onClick={() => setSettingsOpen(true)}
@@ -289,6 +282,17 @@ const App: React.FC = () => {
         >
           <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform duration-700 ease-out" />
         </button>
+      </div>
+
+      {/* Bottom Left: User Avatar */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: 'w-9 h-9 ring-2 ring-white/40 shadow-sm',
+            },
+          }}
+        />
       </div>
 
       {/* Settings Modal - Glass */}

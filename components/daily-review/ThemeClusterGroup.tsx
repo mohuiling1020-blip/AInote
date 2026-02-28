@@ -15,9 +15,9 @@ export function ThemeClusterGroup({ clusters, notesMap }: ThemeClusterGroupProps
 
   return (
     <div className="space-y-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-      <h3 className="text-sm font-serif text-gray-700 flex items-center gap-2">
+      <h3 className="text-lg font-serif text-gray-700 flex items-center gap-2">
         <span className="w-5 h-[1px] bg-morandi-sage/40" />
-        主题聚类
+        今天都在想什么
         <span className="w-5 h-[1px] bg-morandi-sage/40" />
       </h3>
 

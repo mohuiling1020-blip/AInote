@@ -17,7 +17,7 @@ export function SummaryCard({ title, summary, tags, provocativeQuestion }: Summa
       {/* Title */}
       <div className="flex items-center gap-2 mb-4">
         <Sparkles className="w-5 h-5 text-morandi-sage" />
-        <h2 className="text-lg font-serif text-gray-800">{title}</h2>
+        <h2 className="text-lg font-medium font-sans text-gray-800">{title}</h2>
       </div>
 
       {/* Summary */}

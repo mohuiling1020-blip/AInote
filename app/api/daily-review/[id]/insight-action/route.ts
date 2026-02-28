@@ -80,13 +80,21 @@ export async function POST(
 
     sparkNoteId = sparkNote.id;
 
-    // Record bidirectional link in note_links table
-    await supabase.from('note_links').insert({
-      user_id: userId,
-      source_note_id: noteId,
-      target_note_id: sparkNoteId,
-      link_type: 'spark',
-    });
+    // Record bidirectional links in note_links table
+    await supabase.from('note_links').insert([
+      {
+        user_id: userId,
+        source_note_id: noteId,
+        target_note_id: sparkNoteId,
+        link_type: 'spark',
+      },
+      {
+        user_id: userId,
+        source_note_id: sparkNoteId,
+        target_note_id: noteId,
+        link_type: 'spark',
+      },
+    ]);
   }
 
   // Record the interaction

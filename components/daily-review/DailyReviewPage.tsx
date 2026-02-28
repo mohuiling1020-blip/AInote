@@ -11,7 +11,7 @@ import {
   submitInsightAction,
 } from '@/services/dailyReviewService';
 import { fetchNotes } from '@/services/apiService';
-import { Share2, RefreshCw, Clock } from 'lucide-react';
+import { Share2, RefreshCw, Clock, Telescope } from 'lucide-react';
 import { DailyReviewHeader } from './DailyReviewHeader';
 import { LoadingState } from './LoadingState';
 import { EmptyState } from './EmptyState';
@@ -44,6 +44,7 @@ export function DailyReviewPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [date, setDate] = useState(getTodayDateString());
   const [regenerating, setRegenerating] = useState(false);
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
   // Load settings from localStorage
   const getModel = (): ModelType => {
@@ -176,11 +177,13 @@ export function DailyReviewPage() {
     setDate(newDate);
   };
 
-  const handleRegenerate = async () => {
+  const handleRegenerateClick = () => {
     if (regenerating) return;
-    const confirmed = window.confirm('确定要重新生成今日复盘吗？当前复盘内容将被替换。');
-    if (!confirmed) return;
+    setShowRegenerateConfirm(true);
+  };
 
+  const handleRegenerateConfirm = async () => {
+    setShowRegenerateConfirm(false);
     setRegenerating(true);
     try {
       const model = getModel();
@@ -211,12 +214,12 @@ export function DailyReviewPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-lg mx-auto px-6 py-8">
+      <div className="relative z-10 max-w-lg md:max-w-5xl mx-auto px-6 py-8">
         <DailyReviewHeader date={date} onBack={handleBack} onDateChange={handleDateChange}>
           {(pageState === 'ready' || pageState === 'completed') && review && (
             <>
               <button
-                onClick={handleRegenerate}
+                onClick={handleRegenerateClick}
                 disabled={regenerating}
                 className="p-2 rounded-full bg-white/40 border border-white/50 text-morandi-sage hover:bg-white/60 transition-all active:scale-95 disabled:opacity-50"
                 title="重新复盘"
@@ -251,49 +254,60 @@ export function DailyReviewPage() {
         )}
 
         {(pageState === 'ready' || pageState === 'completed') && review && (
-          <div className="space-y-6 pb-24">
-            {/* AI Summary */}
-            {review.title && review.summary && (
-              <SummaryCard
-                title={review.title}
-                summary={review.summary}
-                tags={review.tags}
-                provocativeQuestion={review.provocativeQuestion || ''}
-              />
-            )}
-
-            {/* Theme Clusters */}
-            {review.clusters.length > 0 && (
-              <ThemeClusterGroup clusters={review.clusters} notesMap={notesMap} />
-            )}
-
-            {/* Historical Insight */}
-            {historicalNote && review.historicalHook && insightCardVisible ? (
-              <HistoricalInsightCard
-                noteTitle={historicalNote.title}
-                noteContent={historicalNote.processed_content || historicalNote.content}
-                hook={review.historicalHook}
-                onSpark={handleSpark}
-                onMerge={handleMerge}
-                onDismiss={handleDismiss}
-                onComplete={() => setInsightCardVisible(false)}
-                disabled={actionLoading}
-              />
-            ) : (
-              <div className="rounded-[20px] backdrop-blur-2xl bg-white/40 border border-white/60 shadow-lg p-5">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 text-morandi-sage" />
-                  <h3 className="text-sm font-semibold text-morandi-text font-sans">灵感遗珠</h3>
+          <>
+            <div className="md:grid md:grid-cols-[2fr_3fr] md:gap-8 md:items-start">
+              {/* Left column: Summary (sticky on desktop) */}
+              <div className="md:sticky md:top-8 space-y-6 mb-6 md:mb-0">
+                <div className="flex items-center gap-2">
+                  <Telescope className="w-4 h-4 text-morandi-sage" />
+                  <h2 className="text-lg font-serif text-gray-500">今日总结</h2>
                 </div>
-                <p className="text-xs text-morandi-text/60 font-sans leading-relaxed">
-                  坚持记录，灵感遗珠将在几天后浮现
-                </p>
+                {review.title && review.summary && (
+                  <SummaryCard
+                    title={review.title}
+                    summary={review.summary}
+                    tags={review.tags}
+                    provocativeQuestion={review.provocativeQuestion || ''}
+                  />
+                )}
               </div>
-            )}
 
-            {/* Complete button */}
+              {/* Right column: Clusters + Insight */}
+              <div className="space-y-6">
+                {/* Theme Clusters */}
+                {review.clusters.length > 0 && (
+                  <ThemeClusterGroup clusters={review.clusters} notesMap={notesMap} />
+                )}
+
+                {/* Historical Insight */}
+                {historicalNote && review.historicalHook && insightCardVisible ? (
+                  <HistoricalInsightCard
+                    noteTitle={historicalNote.title}
+                    noteContent={historicalNote.processed_content || historicalNote.content}
+                    hook={review.historicalHook}
+                    onSpark={handleSpark}
+                    onMerge={handleMerge}
+                    onDismiss={handleDismiss}
+                    onComplete={() => setInsightCardVisible(false)}
+                    disabled={actionLoading}
+                  />
+                ) : (
+                  <div className="rounded-[20px] backdrop-blur-2xl bg-white/40 border border-white/60 shadow-lg p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-4 h-4 text-morandi-sage" />
+                      <h3 className="text-sm font-medium font-sans text-morandi-sage">灵感遗珠</h3>
+                    </div>
+                    <p className="text-xs text-morandi-text/60 font-sans leading-relaxed">
+                      坚持记录，灵感遗珠将在几天后浮现
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Complete button / completed indicator - outside grid, centered */}
             {pageState === 'ready' && (
-              <div className="flex justify-center pt-4">
+              <div className="flex justify-center pt-8 pb-24">
                 <button
                   onClick={handleComplete}
                   disabled={completing}
@@ -304,16 +318,15 @@ export function DailyReviewPage() {
               </div>
             )}
 
-            {/* Already completed indicator */}
             {pageState === 'completed' && (
-              <div className="text-center py-4">
+              <div className="text-center py-8">
                 <span className="text-sm text-morandi-sage font-sans">
-                  复盘已完成
+                  今日复盘已完成
                   {review.streakCount >= 1 && ` · 连续 ${review.streakCount} 天`}
                 </span>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 
@@ -326,6 +339,32 @@ export function DailyReviewPage() {
             setPageState('completed');
           }}
         />
+      )}
+
+      {/* Regenerate confirm modal */}
+      {showRegenerateConfirm && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-morandi-sage/10 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white/70 backdrop-blur-2xl rounded-3xl shadow-[0_30px_60px_-15px_rgba(148,159,151,0.2)] p-8 w-[360px] max-w-[90%] border border-white/60 ring-1 ring-white/80">
+            <h3 className="text-lg font-serif text-gray-800 mb-3">重新生成复盘</h3>
+            <p className="text-sm text-gray-500 font-sans leading-relaxed mb-8">
+              当前复盘内容将被替换，确定要重新生成吗？
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowRegenerateConfirm(false)}
+                className="px-5 py-2 text-sm font-medium text-gray-500 rounded-full hover:bg-black/5 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleRegenerateConfirm}
+                className="px-6 py-2 bg-morandi-sage text-white text-sm font-medium rounded-full hover:bg-[#859188] shadow-lg shadow-morandi-sage/20 transition-all active:scale-95"
+              >
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Share card modal */}

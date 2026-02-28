@@ -120,7 +120,7 @@ export function HistoricalInsightCard({
       {/* Section title */}
       <div className="flex items-center gap-2 mb-4">
         <Clock className="w-5 h-5 text-morandi-sage" />
-        <h3 className="text-sm font-serif text-gray-700">灵感遗珠</h3>
+        <h3 className="text-sm font-medium font-sans text-morandi-sage">灵感遗珠</h3>
       </div>
 
       {/* Hook & Note content — collapsible */}

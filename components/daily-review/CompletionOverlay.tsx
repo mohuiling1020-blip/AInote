@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, Flame } from 'lucide-react';
+import { Sparkles, Flame } from 'lucide-react';
 
 type ParticleShape = 'circle' | 'bar' | 'square';
 
@@ -20,9 +20,11 @@ interface CompletionOverlayProps {
 }
 
 function getStreakMessage(count: number): string {
-  if (count <= 1) return '坚持第 1 天，好的开始 🌱';
-  if (count <= 6) return `连续 ${count} 天 🔥`;
-  return `连续 ${count} 天，太厉害了 ✨`;
+  if (count <= 1) return '蒸蚌，今天深度思考了 🧠';
+  if (count <= 3) return `蒸蚌，连续思考了 ${count} 天 🔥`;
+  if (count <= 6) return `蒸蚌，连续 ${count} 天没停过 🫡`;
+  if (count <= 13) return `蒸蚌，${count} 天连续复盘，卷王本王 👑`;
+  return `蒸蚌，${count} 天不间断，你是思考永动机 🚀`;
 }
 
 function getParticleClass(shape: ParticleShape): string {
@@ -94,9 +96,9 @@ export function CompletionOverlay({ streakCount, onClose }: CompletionOverlayPro
           visible ? 'scale-100 opacity-100' : 'scale-75 opacity-0'
         }`}
       >
-        <CheckCircle className="w-16 h-16 text-morandi-sage" />
+        <Sparkles className="w-14 h-14 text-morandi-sage" />
 
-        <h2 className="text-2xl font-serif text-gray-800">复盘完成</h2>
+        <h2 className="text-2xl font-serif text-gray-800">今日复盘已完成</h2>
 
         {streakCount >= 1 && (
           <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/60 backdrop-blur-md border border-white/50 shadow-lg">
