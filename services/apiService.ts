@@ -1,4 +1,4 @@
-import { AIResponse, ModelType } from '@/types';
+import { AIResponse, ModelType, DbNote } from '@/types';
 
 export const processNote = async (
   content: string,
@@ -46,4 +46,59 @@ export const processNote = async (
     throw new Error('Invalid JSON response from server');
   }
 };
+
+// Fetch all notes for current user
+export async function fetchNotes(): Promise<DbNote[]> {
+  const response = await fetch('/api/notes');
+  if (!response.ok) {
+    throw new Error('Failed to fetch notes');
+  }
+  return response.json();
+}
+
+// Create a new note
+export async function createNote(fields: Record<string, unknown>): Promise<DbNote> {
+  const response = await fetch('/api/notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fields),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to create note');
+  }
+  return response.json();
+}
+
+// Update a note
+export async function updateNote(id: string, fields: Record<string, unknown>): Promise<DbNote> {
+  const response = await fetch(`/api/notes/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(fields),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to update note');
+  }
+  return response.json();
+}
+
+// Delete a note
+export async function deleteNote(id: string): Promise<void> {
+  const response = await fetch(`/api/notes/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete note');
+  }
+}
+
+// Batch create notes (for localStorage migration)
+export async function batchCreateNotes(notesList: Array<Record<string, unknown>>): Promise<DbNote[]> {
+  const results: DbNote[] = [];
+  for (const fields of notesList) {
+    const created = await createNote(fields);
+    results.push(created);
+  }
+  return results;
+}
 
