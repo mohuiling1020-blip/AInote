@@ -1,9 +1,11 @@
-'use client';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import LandingPage from '@/components/landing/LandingPage';
 
-import dynamic from 'next/dynamic';
-
-const App = dynamic(() => import('@/App'), { ssr: false });
-
-export default function Home() {
-  return <App />;
+export default async function Home() {
+  const { userId } = await auth();
+  if (userId) {
+    redirect('/app');
+  }
+  return <LandingPage />;
 }

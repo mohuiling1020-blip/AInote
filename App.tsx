@@ -287,6 +287,7 @@ const App: React.FC = () => {
       {/* Bottom Left: User Avatar */}
       <div className="fixed bottom-6 left-6 z-50">
         <UserButton
+          afterSignOutUrl="/"
           appearance={{
             elements: {
               avatarBox: 'w-9 h-9 ring-2 ring-white/40 shadow-sm',
