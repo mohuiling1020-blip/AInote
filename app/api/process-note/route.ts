@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import OpenAI from 'openai';
 import { AIResponse, NoteType } from '@/types';
@@ -101,7 +102,7 @@ async function processWithGemini(content: string): Promise<AIResponse> {
     throw new Error('GEMINI_API_KEY is not configured');
   }
 
-  console.log('Gemini API Key loaded:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+  console.log('Gemini API Key loaded:', !!apiKey);
   
   // Check proxy configuration
   const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
@@ -247,6 +248,11 @@ async function processWithQwen(content: string): Promise<AIResponse> {
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { content, model } = body;
 

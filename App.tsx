@@ -1,21 +1,26 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { useUser } from '@clerk/nextjs';
+import { UserButton } from '@clerk/nextjs';
 import Draggable from 'react-draggable';
-import { Settings, Key, X } from 'lucide-react';
+import { Settings, X, Loader2 } from 'lucide-react';
 
-import { Note, NoteStatus, NoteType, UserSettings, ModelType } from '@/types';
-import { processNote } from '@/services/apiService';
+import { Note, NoteStatus, NoteType, UserSettings, ModelType, DbNote, dbNoteToNote, noteToDbFields } from '@/types';
+import { processNote, fetchNotes, createNote, updateNote as apiUpdateNote, deleteNote as apiDeleteNote, batchCreateNotes } from '@/services/apiService';
 import { InputBar } from '@/components/InputBar';
 import { NoteCard } from '@/components/NoteCard';
 
-const STORAGE_KEY_NOTES = 'mindspark_notes_v2';
+const STORAGE_KEY_NOTES_LEGACY = 'mindspark_notes_v2';
 const STORAGE_KEY_SETTINGS = 'mindspark_settings_v1';
+const STORAGE_KEY_MIGRATED = 'mindspark_migrated';
 
 const App: React.FC = () => {
+  const { user, isLoaded: isUserLoaded } = useUser();
+
   // State
   const [notes, setNotes] = useState<Note[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filter, setFilter] = useState<NoteType | 'ALL'>('ALL');
@@ -41,45 +46,66 @@ const App: React.FC = () => {
   // Set window size on client side
   useEffect(() => {
     setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    
     const handleResize = () => {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
     };
-    
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Load from local storage
+  // Load settings from localStorage (device-specific, stays local)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
-    const savedNotes = localStorage.getItem(STORAGE_KEY_NOTES);
-    if (savedNotes) {
-      try {
-        setNotes(JSON.parse(savedNotes));
-      } catch (e) {
-        console.error("Failed to load notes", e);
-      }
-    }
-
     const savedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
-        // Ensure model is set, default to gemini-flash
         if (!parsed.model) parsed.model = 'gemini-flash';
         setSettings(parsed);
       } catch (e) {
-        console.error("Failed to load settings", e);
+        console.error('Failed to load settings', e);
       }
     }
   }, []);
 
-  // Save notes
+  // Load notes from Supabase + migrate localStorage if needed
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(notes));
-  }, [notes]);
+    if (!isUserLoaded || !user) return;
+
+    const loadNotes = async () => {
+      setIsLoading(true);
+      try {
+        // Check if we need to migrate localStorage data
+        const hasMigrated = localStorage.getItem(STORAGE_KEY_MIGRATED);
+        const legacyNotes = localStorage.getItem(STORAGE_KEY_NOTES_LEGACY);
+
+        if (!hasMigrated && legacyNotes) {
+          try {
+            const parsed: Note[] = JSON.parse(legacyNotes);
+            if (parsed.length > 0) {
+              const dbFields = parsed.map(note => noteToDbFields(note));
+              await batchCreateNotes(dbFields);
+              localStorage.setItem(STORAGE_KEY_MIGRATED, 'true');
+              localStorage.removeItem(STORAGE_KEY_NOTES_LEGACY);
+            }
+          } catch (e) {
+            console.error('Migration failed:', e);
+          }
+        }
+
+        // Fetch notes from API
+        const dbNotes = await fetchNotes();
+        const frontendNotes = dbNotes.map(dbNoteToNote);
+        setNotes(frontendNotes);
+      } catch (error) {
+        console.error('Failed to load notes:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadNotes();
+  }, [isUserLoaded, user]);
 
   const updateSettings = (newSettings: Partial<UserSettings>) => {
     const updated = { ...settings, ...newSettings };
@@ -93,57 +119,66 @@ const App: React.FC = () => {
   };
 
   const handleCreateNote = async (content: string) => {
-    // Ensure card is visible in viewport
     const cardWidth = 280;
     const cardHeight = 180;
     const x = Math.max(20, Math.min(windowSize.width / 2 - cardWidth / 2, windowSize.width - cardWidth - 20));
     const y = Math.max(20, Math.min(windowSize.height / 2 - cardHeight / 2, windowSize.height - cardHeight - 20));
+    const zIndex = getMaxZIndex() + 1;
 
-    const newNote: Note = {
-      id: uuidv4(),
-      originalContent: content,
-      status: NoteStatus.PENDING,
-      type: NoteType.UNCLASSIFIED,
-      createdAt: Date.now(),
-      position: { x, y },
-      zIndex: getMaxZIndex() + 1
-    };
+    try {
+      // Create note in database first
+      const dbNote = await createNote({
+        content,
+        type: 'Unclassified',
+        status: 'pending',
+        position_x: x,
+        position_y: y,
+        z_index: zIndex,
+      });
 
-    setNotes(prev => [...prev, newNote]);
+      const newNote = dbNoteToNote(dbNote);
+      setNotes(prev => [...prev, newNote]);
 
-    // Always process note (API key is stored on backend)
-    processNoteHandler(newNote.id, content);
+      // Process with AI
+      processNoteHandler(newNote.id, content).catch(console.error);
+    } catch (error) {
+      console.error('Failed to create note:', error);
+    }
   };
 
   const processNoteHandler = useCallback(async (noteId: string, content: string) => {
     setIsProcessing(true);
     setNotes(prev => prev.map(n => n.id === noteId ? { ...n, status: NoteStatus.PROCESSING } : n));
 
+    // Update status in DB
+    apiUpdateNote(noteId, { status: 'processing' }).catch(console.error);
+
     try {
       const aiResponse = await processNote(content, settings.model);
-      
-      setNotes(prev => prev.map(n => {
-        if (n.id === noteId) {
-          return {
-            ...n,
-            status: NoteStatus.COMPLETED,
-            type: aiResponse.intent, 
-            aiResponse: aiResponse
-          };
-        }
-        return n;
-      }));
+
+      const updatedNote: Partial<Note> = {
+        status: NoteStatus.COMPLETED,
+        type: aiResponse.intent,
+        aiResponse,
+      };
+
+      setNotes(prev => prev.map(n => n.id === noteId ? { ...n, ...updatedNote } : n));
+
+      // Persist AI result to DB
+      await apiUpdateNote(noteId, {
+        status: 'completed',
+        type: aiResponse.intent,
+        title: aiResponse.title,
+        processed_content: aiResponse.content,
+        tags: aiResponse.meta.tags,
+        suggested_action: aiResponse.meta.suggested_action ?? null,
+        deadline: aiResponse.meta.deadline ?? null,
+      });
     } catch (error: any) {
-      setNotes(prev => prev.map(n => {
-        if (n.id === noteId) {
-          return {
-            ...n,
-            status: NoteStatus.ERROR,
-            errorMessage: error.message || "Unknown error"
-          };
-        }
-        return n;
-      }));
+      setNotes(prev => prev.map(n =>
+        n.id === noteId ? { ...n, status: NoteStatus.ERROR, errorMessage: error.message || 'Unknown error' } : n
+      ));
+      apiUpdateNote(noteId, { status: 'error' }).catch(console.error);
     } finally {
       setIsProcessing(false);
     }
@@ -151,45 +186,67 @@ const App: React.FC = () => {
 
   const handleUpdateNote = (id: string, updates: Partial<Note>) => {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
+
+    // Persist relevant updates to DB
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.checkedIndices !== undefined) dbUpdates.checked_items = updates.checkedIndices;
+    if (updates.type !== undefined) dbUpdates.type = updates.type;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+
+    if (Object.keys(dbUpdates).length > 0) {
+      apiUpdateNote(id, dbUpdates).catch(console.error);
+    }
   };
 
   const handleDeleteNote = (id: string) => {
     setNotes(prev => prev.filter(n => n.id !== id));
-    if (notesRefs.current.has(id)) {
-        notesRefs.current.delete(id);
-    }
+    notesRefs.current.delete(id);
+    apiDeleteNote(id).catch(console.error);
   };
 
-  const handleDragStop = (id: string, e: any, data: {x: number, y: number}) => {
-    setNotes(prev => prev.map(n => 
+  const handleDragStop = (id: string, _e: any, data: { x: number; y: number }) => {
+    setNotes(prev => prev.map(n =>
       n.id === id ? { ...n, position: { x: data.x, y: data.y } } : n
     ));
+    apiUpdateNote(id, { position_x: data.x, position_y: data.y }).catch(console.error);
   };
 
   const bringToFront = (id: string) => {
-    const maxZ = getMaxZIndex();
+    const newZ = getMaxZIndex() + 1;
     setNotes(prev => {
-        const note = prev.find(n => n.id === id);
-        if (note && note.zIndex === maxZ) return prev; 
-        return prev.map(n => n.id === id ? { ...n, zIndex: maxZ + 1 } : n);
+      const note = prev.find(n => n.id === id);
+      if (note && note.zIndex >= newZ) return prev;
+      return prev.map(n => n.id === id ? { ...n, zIndex: newZ } : n);
     });
+    apiUpdateNote(id, { z_index: newZ }).catch(console.error);
   };
 
   const filteredNotes = filter === 'ALL' ? notes : notes.filter(n => n.type === filter);
 
+  // Loading state
+  if (!isUserLoaded || isLoading) {
+    return (
+      <div className="relative w-screen h-screen flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-transparent">
+          <div className="absolute top-[-10%] left-[-2%] w-[200px] h-[200px] rounded-full bg-[#EBE2AA] blur-[50px] opacity-60" />
+          <div className="absolute bottom-[5%] left-[0%] w-[800px] h-[600px] rounded-full bg-[#C8D5C5] blur-[200px] opacity-60" />
+          <div className="absolute top-[5%] left-[1%] w-[800px] h-[800px] rounded-full bg-[#949F97] blur-[200px] opacity-80" />
+          <div className="absolute bottom-[1%] right-[1%] w-[1000px] h-[700px] rounded-full bg-[#EEE9D0] blur-[130px] opacity-60" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 text-morandi-sage animate-spin" />
+          <span className="text-gray-500 text-sm font-sans">Loading your notes...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-screen h-screen overflow-hidden selection:bg-morandi-cream/50" style={{ minHeight: '100vh' }}>
-      
-      {/* 
-        BACKGROUND: 4 Specific Gaussian Blur Circles on Transparent Base
-        Colors: 
-        1. Sage: #949F97
-        2. Cream: #EBE2AA
-        3. Mint: #C8D5C5
-        4. Beige: #EEE9D0
-      */}
+
+      {/* Background */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden bg-transparent">
-          
+
           {/* 0. Small Cream (#EBE2AA) - Top Left accent */}
           <div className="absolute top-[-10%] left-[-2%] w-[200px] h-[200px] rounded-full bg-[#EBE2AA] blur-[50px] opacity-60"></div>
 
@@ -207,16 +264,25 @@ const App: React.FC = () => {
 
           {/* Texture Overlay - Subtle Grain */}
           <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-overlay"></div>
-          
+
       </div>
 
-      {/* Settings Button */}
-      <button 
-        onClick={() => setSettingsOpen(true)}
-        className="absolute top-6 right-6 z-50 p-3 bg-white/30 backdrop-blur-md hover:bg-white/60 rounded-full text-gray-600 hover:text-gray-900 transition-all shadow-sm border border-white/40 active:scale-95 group ring-1 ring-white/40"
-      >
-        <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform duration-700 ease-out" />
-      </button>
+      {/* Top Right: User Button + Settings */}
+      <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: 'w-9 h-9 ring-2 ring-white/40 shadow-sm',
+            },
+          }}
+        />
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="p-3 bg-white/30 backdrop-blur-md hover:bg-white/60 rounded-full text-gray-600 hover:text-gray-900 transition-all shadow-sm border border-white/40 active:scale-95 group ring-1 ring-white/40"
+        >
+          <Settings className="w-5 h-5 group-hover:rotate-45 transition-transform duration-700 ease-out" />
+        </button>
+      </div>
 
       {/* Settings Modal - Glass */}
       {settingsOpen && (
@@ -230,7 +296,7 @@ const App: React.FC = () => {
                   <X className="w-5 h-5" />
                </button>
             </div>
-            
+
             <p className="text-sm text-gray-600 mb-6 font-sans leading-relaxed">
               Select the AI model to use for processing your notes. API keys are securely stored on the server.
             </p>
@@ -266,9 +332,9 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex justify-end mt-8">
-              <button 
+              <button
                 onClick={() => setSettingsOpen(false)}
                 className="px-8 py-2.5 bg-morandi-sage text-white text-sm font-medium rounded-full hover:bg-[#859188] shadow-lg shadow-morandi-sage/20 transition-all active:scale-95"
               >
@@ -291,9 +357,9 @@ const App: React.FC = () => {
                 nodeRef={nodeRef as React.RefObject<HTMLDivElement>}
                 onMouseDown={() => bringToFront(note.id)}
               >
-                <NoteCard 
+                <NoteCard
                   ref={nodeRef}
-                  note={note} 
+                  note={note}
                   style={{ zIndex: note.zIndex }}
                   onRetry={processNoteHandler}
                   onUpdate={handleUpdateNote}
@@ -305,15 +371,15 @@ const App: React.FC = () => {
       </div>
 
       {/* Input Dock */}
-      <Draggable 
+      <Draggable
         nodeRef={inputBarRef}
         handle=".input-drag-handle"
         defaultPosition={{x: 40, y: windowSize.height - 800}}
       >
          <div ref={inputBarRef} className="absolute z-[1500]">
-            <InputBar 
-              onSubmit={handleCreateNote} 
-              isProcessing={isProcessing} 
+            <InputBar
+              onSubmit={handleCreateNote}
+              isProcessing={isProcessing}
               onFilterChange={setFilter}
               activeFilter={filter}
             />
