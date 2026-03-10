@@ -7,6 +7,7 @@ import HeroSection from './HeroSection';
 import FeaturesSection from './FeaturesSection';
 import HowItWorks from './HowItWorks';
 import ValueProposition from './ValueProposition';
+import PricingSection from './PricingSection';
 import FAQSection from './FAQSection';
 import CTASection from './CTASection';
 import Footer from './Footer';
@@ -21,6 +22,7 @@ export default function LandingPage() {
         <FeaturesSection />
         <HowItWorks />
         <ValueProposition />
+        <PricingSection />
         <FAQSection />
         <CTASection />
         <Footer />

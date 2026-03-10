@@ -4,6 +4,7 @@ const translations = {
   nav: {
     features: { zh: '功能', en: 'Features' },
     howItWorks: { zh: '使用方式', en: 'How It Works' },
+    pricing: { zh: '定价', en: 'Pricing' },
     faq: { zh: '常见问题', en: 'FAQ' },
     getStarted: { zh: '开始使用', en: 'Get Started' },
   },
@@ -120,8 +121,8 @@ const translations = {
       {
         q: { zh: 'MindSpark 免费吗？', en: 'Is MindSpark free?' },
         a: {
-          zh: '是的，目前完全免费使用。',
-          en: 'Yes, it is completely free to use.',
+          zh: '提供免费版，包含每日 20 条 AI 处理等核心功能。升级 Pro 可解锁无限 AI 处理和高级复盘等全部能力。',
+          en: 'Yes! The free plan includes 20 AI processes per day and core features. Upgrade to Pro for unlimited AI and advanced review.',
         },
       },
       {
@@ -152,6 +153,54 @@ const translations = {
         },
       },
     ],
+  },
+  pricing: {
+    title: { zh: '简单透明的定价', en: 'Simple, Transparent Pricing' },
+    subtitle: {
+      zh: '从免费开始，随时升级解锁更多能力',
+      en: 'Start free, upgrade anytime for more power',
+    },
+    monthly: { zh: '月付', en: 'Monthly' },
+    yearly: { zh: '年付', en: 'Yearly' },
+    yearlyDiscount: { zh: '省 20%', en: 'Save 20%' },
+    perMonth: { zh: '/月', en: '/mo' },
+    billedYearly: { zh: '按年计费', en: 'billed yearly' },
+    free: {
+      name: { zh: '免费版', en: 'Free' },
+      price: { monthly: '0', yearly: '0' },
+      desc: {
+        zh: '适合个人轻量使用，体验 AI 笔记的魅力',
+        en: 'Perfect for trying out AI-powered notes',
+      },
+      cta: { zh: '免费开始', en: 'Get Started Free' },
+      features: [
+        { zh: '每日 20 条 AI 处理', en: '20 AI processes per day' },
+        { zh: '智能分类', en: 'Smart classification' },
+        { zh: '每日复盘（基础版）', en: 'Daily review (basic)' },
+        { zh: '一键分享卡片', en: 'One-click share cards' },
+        { zh: '7 天历史灵感回顾', en: '7-day insight history' },
+      ],
+    },
+    pro: {
+      name: { zh: '专业版', en: 'Pro' },
+      price: { monthly: '9.9', yearly: '7.9' },
+      currency: { zh: '¥', en: '$' },
+      desc: {
+        zh: '释放全部 AI 能力，让每一条灵感都不被辜负',
+        en: 'Unlock full AI power — never let a spark fade',
+      },
+      cta: { zh: '升级 Pro', en: 'Upgrade to Pro' },
+      badge: { zh: '最受欢迎', en: 'Most Popular' },
+      features: [
+        { zh: '无限 AI 处理', en: 'Unlimited AI processes' },
+        { zh: '智能分类 + 自定义标签', en: 'Smart classification + custom tags' },
+        { zh: '每日复盘（高级版 + 主题聚类）', en: 'Daily review (advanced + theme clustering)' },
+        { zh: '一键分享卡片', en: 'One-click share cards' },
+        { zh: '无限历史灵感回顾', en: 'Unlimited insight history' },
+        { zh: '优先使用新功能', en: 'Early access to new features' },
+        { zh: '优先客服支持', en: 'Priority support' },
+      ],
+    },
   },
   cta: {
     title: {
