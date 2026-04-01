@@ -31,6 +31,9 @@ export default function Navbar() {
           <button onClick={() => scrollTo('how-it-works')} className="hover:text-morandi-sage transition-colors">
             {t.nav.howItWorks[locale]}
           </button>
+          <button onClick={() => scrollTo('pricing')} className="hover:text-morandi-sage transition-colors">
+            {t.nav.pricing[locale]}
+          </button>
           <button onClick={() => scrollTo('faq')} className="hover:text-morandi-sage transition-colors">
             {t.nav.faq[locale]}
           </button>

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { createServerClient } from '@/lib/supabase';
+import { checkUsageLimit, incrementUsage } from '@/lib/usage';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import OpenAI from 'openai';
 import { AIResponse, NoteType } from '@/types';
@@ -256,7 +258,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { content, model } = body;
 
-    console.log('Received request:', { model, contentLength: content?.length });
+    // Check usage limit for free users
+    const supabase = createServerClient();
+    const usageCheck = await checkUsageLimit(supabase, userId, 'ai_process');
+    if (!usageCheck.allowed) {
+      return NextResponse.json(
+        { error: '今日 AI 处理次数已达上限', code: 'USAGE_LIMIT', current: usageCheck.current, limit: usageCheck.limit },
+        { status: 429 },
+      );
+    }
 
     if (!content) {
       return NextResponse.json(
@@ -304,6 +314,9 @@ export async function POST(request: NextRequest) {
       // Re-throw with more context
       throw new Error(`[${model}] ${modelError.message || 'Unknown error'}`);
     }
+
+    // Increment usage after successful processing
+    await incrementUsage(supabase, userId, 'ai_process');
 
     return NextResponse.json(result);
   } catch (error: any) {

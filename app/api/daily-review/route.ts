@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerClient } from '@/lib/supabase';
 import { ensureUser } from '@/lib/ensure-user';
+import { checkUsageLimit, incrementUsage } from '@/lib/usage';
 import { generateReviewSummary } from '@/lib/daily-review-ai';
 import { findHistoricalInsight } from '@/lib/historical-insight';
 
@@ -98,6 +99,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(existing);
   }
 
+  // Check usage limit for fresh generation only
+  const usageCheck = await checkUsageLimit(supabase, userId, 'daily_review');
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      { error: '今日复盘次数已达上限', code: 'USAGE_LIMIT', current: usageCheck.current, limit: usageCheck.limit },
+      { status: 429 },
+    );
+  }
+
   // Fetch today's notes
   const dayStart = `${date}T00:00:00.000Z`;
   const dayEnd = `${date}T23:59:59.999Z`;
@@ -178,6 +188,9 @@ export async function POST(request: NextRequest) {
       console.error('Failed to update review:', updateError);
       return NextResponse.json({ error: 'Failed to save review' }, { status: 500 });
     }
+
+    // Increment usage after successful generation
+    await incrementUsage(supabase, userId, 'daily_review');
 
     return NextResponse.json(updatedReview, { status: 201 });
   } catch (aiError: any) {

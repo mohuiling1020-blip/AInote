@@ -4,15 +4,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { UserButton } from '@clerk/nextjs';
 import Draggable from 'react-draggable';
-import { Settings, X, Loader2, Telescope } from 'lucide-react';
+import { Settings, Loader2, Telescope } from 'lucide-react';
 
-import { Note, NoteStatus, NoteType, UserSettings, ModelType, DbNote, dbNoteToNote, noteToDbFields } from '@/types';
+import { Note, NoteStatus, NoteType, DbNote, dbNoteToNote, noteToDbFields } from '@/types';
 import { processNote, fetchNotes, createNote, updateNote as apiUpdateNote, deleteNote as apiDeleteNote, batchCreateNotes } from '@/services/apiService';
 import { InputBar } from '@/components/InputBar';
 import { NoteCard } from '@/components/NoteCard';
+import AccountOverview from '@/components/settings/AccountOverview';
 
 const STORAGE_KEY_NOTES_LEGACY = 'mindspark_notes_v2';
-const STORAGE_KEY_SETTINGS = 'mindspark_settings_v1';
 const STORAGE_KEY_MIGRATED = 'mindspark_migrated';
 
 const App: React.FC = () => {
@@ -24,11 +24,6 @@ const App: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [filter, setFilter] = useState<NoteType | 'ALL'>('ALL');
-  const [settings, setSettings] = useState<UserSettings>({
-    apiKey: '',
-    autoProcess: true,
-    model: 'gemini-flash',
-  });
   const [windowSize, setWindowSize] = useState({ width: 1920, height: 1080 });
 
   // Manage refs for draggable items
@@ -53,20 +48,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Load settings from localStorage (device-specific, stays local)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const savedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        if (!parsed.model) parsed.model = 'gemini-flash';
-        setSettings(parsed);
-      } catch (e) {
-        console.error('Failed to load settings', e);
-      }
-    }
-  }, []);
 
   // Load notes from Supabase + migrate localStorage if needed
   useEffect(() => {
@@ -106,12 +87,6 @@ const App: React.FC = () => {
 
     loadNotes();
   }, [isUserLoaded, user]);
-
-  const updateSettings = (newSettings: Partial<UserSettings>) => {
-    const updated = { ...settings, ...newSettings };
-    setSettings(updated);
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(updated));
-  };
 
   const getMaxZIndex = () => {
     if (notes.length === 0) return 1;
@@ -154,7 +129,7 @@ const App: React.FC = () => {
     apiUpdateNote(noteId, { status: 'processing' }).catch(console.error);
 
     try {
-      const aiResponse = await processNote(content, settings.model);
+      const aiResponse = await processNote(content, 'gemini-flash');
 
       const updatedNote: Partial<Note> = {
         status: NoteStatus.COMPLETED,
@@ -182,7 +157,7 @@ const App: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [settings.model]);
+  }, []);
 
   const handleUpdateNote = (id: string, updates: Partial<Note>) => {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n));
@@ -296,66 +271,8 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Settings Modal - Glass */}
-      {settingsOpen && (
-        <div className="absolute inset-0 z-[2000] flex items-center justify-center bg-morandi-sage/10 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white/70 backdrop-blur-2xl rounded-3xl shadow-[0_30px_60px_-15px_rgba(148,159,151,0.2)] p-8 w-[420px] max-w-[90%] border border-white/60 ring-1 ring-white/80">
-            <div className="flex justify-between items-center mb-8">
-               <h2 className="text-xl font-serif text-gray-800 flex items-center gap-2">
-                 <span>Settings</span>
-               </h2>
-               <button onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-gray-700 transition-colors p-1 hover:bg-black/5 rounded-full">
-                  <X className="w-5 h-5" />
-               </button>
-            </div>
-
-            <p className="text-sm text-gray-600 mb-6 font-sans leading-relaxed">
-              Select the AI model to use for processing your notes. API keys are securely stored on the server.
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  AI Model
-                </label>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => updateSettings({ model: 'gemini-flash' })}
-                    className={`flex-1 px-4 py-3 rounded-xl border transition-all ${
-                      settings.model === 'gemini-flash'
-                        ? 'bg-morandi-sage text-white border-transparent shadow-md'
-                        : 'bg-white/50 border-gray-200/50 text-gray-700 hover:bg-white/70'
-                    }`}
-                  >
-                    <div className="font-medium">Gemini3 Flash</div>
-                    <div className="text-xs opacity-80 mt-1">Fast & efficient</div>
-                  </button>
-                  <button
-                    onClick={() => updateSettings({ model: 'qwen3-max' })}
-                    className={`flex-1 px-4 py-3 rounded-xl border transition-all ${
-                      settings.model === 'qwen3-max'
-                        ? 'bg-morandi-sage text-white border-transparent shadow-md'
-                        : 'bg-white/50 border-gray-200/50 text-gray-700 hover:bg-white/70'
-                    }`}
-                  >
-                    <div className="font-medium">Qwen3 Max</div>
-                    <div className="text-xs opacity-80 mt-1">Advanced reasoning</div>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end mt-8">
-              <button
-                onClick={() => setSettingsOpen(false)}
-                className="px-8 py-2.5 bg-morandi-sage text-white text-sm font-medium rounded-full hover:bg-[#859188] shadow-lg shadow-morandi-sage/20 transition-all active:scale-95"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Account Overview Modal */}
+      <AccountOverview isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* Canvas */}
       <div className="absolute inset-0 z-10 w-full h-full">
