@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { useScrollAnimation } from '@/hooks/useScrollAnimation';
 import Link from 'next/link';
@@ -13,20 +13,10 @@ function CheckIcon() {
   );
 }
 
-function LoadingSpinner() {
-  return (
-    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
-  );
-}
-
 export default function PricingSection() {
   const { locale, t } = useLanguage();
   const { ref, isVisible } = useScrollAnimation();
   const [isYearly, setIsYearly] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const pricing = t.pricing;
   const freePlan = pricing.free;
@@ -34,36 +24,6 @@ export default function PricingSection() {
 
   const proPrice = isYearly ? proPlan.price.yearly : proPlan.price.monthly;
   const currency = proPlan.currency[locale];
-
-  const handleProCheckout = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: 'pro',
-          period: isYearly ? 'yearly' : 'monthly',
-        }),
-      });
-
-      if (res.status === 401) {
-        window.location.href = '/sign-up';
-        return;
-      }
-
-      const data = await res.json();
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else {
-        console.error('Checkout failed:', data.error);
-      }
-    } catch (err) {
-      console.error('Checkout request failed:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isYearly]);
 
   return (
     <section id="pricing" className="py-24 px-6" ref={ref}>
@@ -184,13 +144,12 @@ export default function PricingSection() {
               ))}
             </ul>
 
-            <button
-              onClick={handleProCheckout}
-              disabled={isLoading}
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-morandi-sage text-white font-medium hover:bg-morandi-sage/90 transition-all hover:shadow-lg hover:shadow-morandi-sage/25 disabled:opacity-60 disabled:cursor-not-allowed"
+            <Link
+              href="/sign-up"
+              className="block text-center px-6 py-3 rounded-full bg-morandi-sage text-white font-medium hover:bg-morandi-sage/90 transition-all hover:shadow-lg hover:shadow-morandi-sage/25"
             >
-              {isLoading ? <LoadingSpinner /> : proPlan.cta[locale]}
-            </button>
+              {proPlan.cta[locale]}
+            </Link>
           </div>
         </div>
       </div>

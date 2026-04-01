@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerClient } from '@/lib/supabase';
 import { ensureUser } from '@/lib/ensure-user';
+import { checkUsageLimit, incrementUsage } from '@/lib/usage';
 
 export async function GET() {
   const { userId } = await auth();
@@ -57,6 +58,16 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServerClient();
+
+  // Check usage limit for free users
+  const usageCheck = await checkUsageLimit(supabase, userId, 'note_create');
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      { error: '今日笔记创建已达上限', code: 'USAGE_LIMIT', current: usageCheck.current, limit: usageCheck.limit },
+      { status: 429 },
+    );
+  }
+
   const { data, error } = await supabase
     .from('notes')
     .insert({
@@ -82,6 +93,9 @@ export async function POST(request: NextRequest) {
     console.error('Failed to create note:', error);
     return NextResponse.json({ error: 'Failed to create note' }, { status: 500 });
   }
+
+  // Increment usage counter after successful creation
+  await incrementUsage(supabase, userId, 'note_create');
 
   return NextResponse.json(data, { status: 201 });
 }
