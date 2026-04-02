@@ -12,9 +12,7 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 function getDefaultLocale(): Locale {
-  if (typeof window === 'undefined') return 'zh';
-  const lang = navigator.language;
-  return lang.startsWith('zh') ? 'zh' : 'en';
+  return 'en';
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
