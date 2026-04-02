@@ -15,7 +15,7 @@ import Footer from './Footer';
 export default function LandingPage() {
   return (
     <LanguageProvider>
-      <div className="fixed inset-0 overflow-y-auto">
+      <div className="fixed inset-0 overflow-y-auto grain">
         <LandingBackground />
         <Navbar />
         <HeroSection />
